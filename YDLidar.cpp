@@ -369,7 +369,7 @@ result_t YDLidar::waitScanDot( uint32_t timeout) {
 		return RESULT_FAIL;
 	}
 
-    point.distance = node.distance_q2*0.25f;
+    point.distance = node.distance_q2;
     point.angle = (node.angle_q6_checkbit >> LIDAR_RESP_MEASUREMENT_ANGLE_SHIFT)/64.0f;
     point.quality = (node.sync_quality>>LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT);
     point.startBit = (node.sync_quality & LIDAR_RESP_MEASUREMENT_SYNCBIT);
