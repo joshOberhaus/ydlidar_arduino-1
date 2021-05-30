@@ -123,8 +123,8 @@ struct lidar_ans_header {
 
 struct scanPoint {
 	uint8_t quality;
-	float 	angle;
-	float 	distance;
+	uint16_t 	angle;
+	uint16_t 	distance;
 	bool    startBit;
 };
 
