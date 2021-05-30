@@ -383,7 +383,7 @@ result_t YDLidar::waitScanDot( uint32_t timeout, uint8_t &numOfPoints, scanPoint
 	minAngle = FirstSampleAngle;
 	maxAngle = LastSampleAngle;
 	intervalSampleAngle = IntervalSampleAngle;
-	nowPackageNum = package.nowPackageNum;	
+	numOfPoints = package.nowPackageNum;	
 	if(package_Sample_Index >= nowPackageNum){
 		package_Sample_Index = 0;	
 	}
