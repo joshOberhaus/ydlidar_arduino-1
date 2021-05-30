@@ -169,7 +169,7 @@ public:
     result_t startScan(bool force = false, uint32_t timeout = DEFAULT_TIMEOUT*2);
 
     // wait for one sample package to arrive
-    result_t waitScanDot(uint32_t timeout = DEFAULT_TIMEOUT);
+    result_t waitScanDot( uint32_t timeout, uint8_t &numOfPoints, scanPoint * scanPointArray, uint16_t &minAngle, uint16_t &maxAngle, float &intervalSampleAngle);
     
     // retrieve currently received sample point
     const scanPoint & getCurrentScanPoint(void)

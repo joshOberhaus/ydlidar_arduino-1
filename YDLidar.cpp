@@ -182,7 +182,7 @@ result_t YDLidar::startScan(bool force, uint32_t timeout ) {
 }
 
 // wait scan data
-result_t YDLidar::waitScanDot( uint32_t timeout) {
+result_t YDLidar::waitScanDot( uint32_t timeout, uint8_t &numOfPoints, scanPoint * scanPointArray, uint16_t &minAngle, uint16_t &maxAngle, float &intervalSampleAngle) {
 	int recvPos = 0;
 	uint32_t startTs = millis();
 	uint32_t waitTime;
@@ -343,38 +343,46 @@ result_t YDLidar::waitScanDot( uint32_t timeout) {
 		node.sync_quality = Node_Default_Quality + Node_Sync;
 	}
 
-	if(CheckSumResult == true){
-		node.distance_q2 = package.packageSampleDistance[package_Sample_Index];
-				  
-		if(node.distance_q2/4 != 0){
-			AngleCorrectForDistance = (int32_t)((atan(((21.8*(155.3 - (node.distance_q2*0.25f)) )/155.3)/(node.distance_q2*0.25f)))*3666.93);
-		}else{
-			AngleCorrectForDistance = 0;		
-		}
-		float sampleAngle = IntervalSampleAngle*package_Sample_Index;
-		if((FirstSampleAngle + sampleAngle + AngleCorrectForDistance) < 0){
-			node.angle_q6_checkbit = (((uint16_t)(FirstSampleAngle + sampleAngle + AngleCorrectForDistance + 23040))<<LIDAR_RESP_MEASUREMENT_ANGLE_SHIFT) + LIDAR_RESP_MEASUREMENT_CHECKBIT;
-		}else{
-			if((FirstSampleAngle + sampleAngle + AngleCorrectForDistance) > 23040){
-				node.angle_q6_checkbit = ((uint16_t)((FirstSampleAngle + sampleAngle + AngleCorrectForDistance - 23040))<<LIDAR_RESP_MEASUREMENT_ANGLE_SHIFT) + LIDAR_RESP_MEASUREMENT_CHECKBIT;
+	for (;package_Sample_Index < package.nowPackageNum;package_Sample_Index++)
+	{
+		if(CheckSumResult == true){
+			node.distance_q2 = package.packageSampleDistance[package_Sample_Index];
+					
+			if(node.distance_q2/4 != 0){
+				AngleCorrectForDistance = (int32_t)((atan(((21.8*(155.3 - (node.distance_q2*0.25f)) )/155.3)/(node.distance_q2*0.25f)))*3666.93);
 			}else{
-				node.angle_q6_checkbit = ((uint16_t)((FirstSampleAngle + sampleAngle + AngleCorrectForDistance))<<LIDAR_RESP_MEASUREMENT_ANGLE_SHIFT) + LIDAR_RESP_MEASUREMENT_CHECKBIT;
-			} 
+				AngleCorrectForDistance = 0;		
+			}
+			float sampleAngle = IntervalSampleAngle*package_Sample_Index;
+			if((FirstSampleAngle + sampleAngle + AngleCorrectForDistance) < 0){
+				node.angle_q6_checkbit = (((uint16_t)(FirstSampleAngle + sampleAngle + AngleCorrectForDistance + 23040))<<LIDAR_RESP_MEASUREMENT_ANGLE_SHIFT) + LIDAR_RESP_MEASUREMENT_CHECKBIT;
+			}else{
+				if((FirstSampleAngle + sampleAngle + AngleCorrectForDistance) > 23040){
+					node.angle_q6_checkbit = ((uint16_t)((FirstSampleAngle + sampleAngle + AngleCorrectForDistance - 23040))<<LIDAR_RESP_MEASUREMENT_ANGLE_SHIFT) + LIDAR_RESP_MEASUREMENT_CHECKBIT;
+				}else{
+					node.angle_q6_checkbit = ((uint16_t)((FirstSampleAngle + sampleAngle + AngleCorrectForDistance))<<LIDAR_RESP_MEASUREMENT_ANGLE_SHIFT) + LIDAR_RESP_MEASUREMENT_CHECKBIT;
+				} 
+			}
 		}
-	}else{
-		node.sync_quality = Node_Default_Quality + Node_NotSync;
-		node.angle_q6_checkbit = LIDAR_RESP_MEASUREMENT_CHECKBIT;
-		node.distance_q2 = 0;
-		package_Sample_Index = 0;
-		return RESULT_FAIL;
+		else
+		{
+			node.sync_quality = Node_Default_Quality + Node_NotSync;
+			node.angle_q6_checkbit = LIDAR_RESP_MEASUREMENT_CHECKBIT;
+			node.distance_q2 = 0;
+			package_Sample_Index = 0;
+			return RESULT_FAIL;
+		}
+
+		scanPointArray[package_Sample_Index].distance = node.distance_q2;
+		scanPointArray[package_Sample_Index].angle = (node.angle_q6_checkbit >> LIDAR_RESP_MEASUREMENT_ANGLE_SHIFT);
+		scanPointArray[package_Sample_Index].quality = (node.sync_quality>>LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT);
+		scanPointArray[package_Sample_Index].startBit = (node.sync_quality & LIDAR_RESP_MEASUREMENT_SYNCBIT);
+
 	}
 
-    point.distance = node.distance_q2;
-    point.angle = (node.angle_q6_checkbit >> LIDAR_RESP_MEASUREMENT_ANGLE_SHIFT);
-    point.quality = (node.sync_quality>>LIDAR_RESP_MEASUREMENT_QUALITY_SHIFT);
-    point.startBit = (node.sync_quality & LIDAR_RESP_MEASUREMENT_SYNCBIT);
-
-	package_Sample_Index++;
+	minAngle = FirstSampleAngle;
+	maxAngle = LastSampleAngle;
+	intervalSampleAngle = IntervalSampleAngle;
 	nowPackageNum = package.nowPackageNum;	
 	if(package_Sample_Index >= nowPackageNum){
 		package_Sample_Index = 0;	
